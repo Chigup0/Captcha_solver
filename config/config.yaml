@@ -1,0 +1,100 @@
+# ---------------------------------------------------------------------------
+# CAPTCHA dataset + template-recognizer configuration.
+# Secrets (cookies, tokens) are NOT stored here: this file only names the
+# environment variables that hold them.
+# ---------------------------------------------------------------------------
+
+api:
+  # ===== the only line you normally edit: your site's domain (no https://, no slash) =====
+  host: abc.in
+  scheme: https                         # http | https
+
+  # Leave the {braces} as they are - the script fills them in on every request:
+  #   {base_url} -> https://<host>   {captcha_id} -> 1559187, 1559188, ...   {nonce} -> unix time
+  url_template: "{base_url}/image-captcha-generate/{captcha_id}/{nonce}"
+  nonce: unix_time            # unix_time | fixed
+  nonce_fixed: null           # used when nonce == fixed, e.g. "1700002921"
+  template_fields_env: {}     # e.g. {token: CAPTCHA_TOKEN} -> usable as {token} in url_template
+  headers:                    # same as the browser request; {base_url}/{host} are filled in
+    Sec-Ch-Ua-Platform: '"Windows"'
+    Accept-Language: "en-US,en;q=0.9"
+    Sec-Ch-Ua: '"Chromium";v="151", "Not=A?Brand";v="99"'
+    User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+    Sec-Ch-Ua-Mobile: "?0"
+    Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
+    Sec-Fetch-Site: same-origin
+    Sec-Fetch-Mode: no-cors
+    Sec-Fetch-Dest: image
+    Referer: "{base_url}/user/login"
+    Accept-Encoding: "gzip, deflate"  # no "br": Python can't decode brotli without an extra package
+    Priority: i
+    Connection: keep-alive
+  header_env:                 # header name -> env var; skipped when the env var is unset
+    Cookie: CAPTCHA_COOKIE
+  timeout_s: 10
+  min_interval_s: 0.5
+  max_retries: 3
+
+collection:
+  start: 1559187              # first captcha_id when there is no data yet
+  per_id: 20                  # renderings saved per captcha_id
+
+paths:
+  raw_dir: data/raw
+  metadata: data/raw/metadata.csv
+  answers: data/labels/answers.csv
+  splits: data/splits.json
+  chars_dir: data/chars
+  chars_index: data/chars/index.csv
+  debug_dir: data/debug
+  templates_dir: templates
+
+captcha:
+  width: 180
+  height: 60
+  n_chars: 5
+  alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+split:
+  train: 0.8
+  val: 0.1
+  test: 0.1
+  seed: 42
+
+segmentation:
+  method: components          # components | color_kmeans | equal_width
+  components:
+    w_gap: 2.0                # merge cost per pixel of horizontal gap between two blobs
+  min_strength: 0.12          # min ink strength (distance from background colour, 0..1)
+  min_component_area: 8
+  crop_pad: 2
+  color_kmeans:
+    w_color: 1.0              # weight of Lab a*,b*
+    w_lightness: 0.5          # weight of Lab L*
+    w_x: 1.5                  # weight of the x coordinate (pixels)
+    min_cluster_frac: 0.04    # fall back to equal_width if a cluster is smaller than this
+    max_cluster_span: 0.45    # ...or wider than this fraction of the text width
+
+preprocess:
+  canonical_size: 40
+  margin: 2
+  blur_sigma: 1.0             # applied only for matching (tolerance to stroke jitter)
+  min_component_area: 6
+
+matching:
+  default_method: ncc
+  max_rotation: 45            # generator cap (keeps 6/9, n/u, M/W distinguishable)
+  rotation_margin: 8          # extra degrees searched beyond the cap
+  rotation_step: 2
+  size_penalty: 0.0
+  ensemble_chamfer_weight: 0.05
+
+templates:
+  shapes_per_char: 2
+  max_samples_per_char: 120
+  min_samples: 8
+  align_range: 90             # within-class alignment search (+-): two samples may differ by 2*45
+  align_step: 3
+  min_silhouette: 0.15        # below this the 2-shape split is reported as unreliable
+  min_minority_frac: 0.08
+  seed: 0
