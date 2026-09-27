@@ -69,16 +69,88 @@ dist/                     captcha-extension.zip, bookmarklet.html, bookmarklet.t
 
 ## Quick start (just use it)
 
-### Option A: bookmarklet (any Chromium browser, nothing to install)
+### Option A: bookmarklet (nothing to install)
 
-1. Open `dist/bookmarklet.html` in Chrome or Edge.
-2. Drag the **Captcha autofill** button onto your bookmarks bar. (Show the bar with
-   <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>.)
-3. Open the login page on `abc.in` and click the bookmark. The captcha box gets filled in.
-   After that it also follows captcha refreshes by itself while the page stays open.
+A bookmarklet is a bookmark that runs a small script on the page you're looking at, instead of
+opening a website. This one contains the whole recognizer and model (about 220 KB), so it works
+offline and doesn't load anything from the internet.
 
-You can also create a bookmark by hand and paste the contents of `dist/bookmarklet.txt` as its URL.
-On any other site the bookmarklet only shows *"This bookmarklet only works on abc.in"*.
+#### 1. Get the files
+
+Download or clone this repository. You only need the `dist/` folder:
+
+```
+dist/bookmarklet.html   ← page with a button you drag to your bookmarks bar
+dist/bookmarklet.txt    ← the same bookmarklet as text, for adding it by hand
+```
+
+#### 2. Show the bookmarks bar
+
+| browser | how |
+|---|---|
+| Chrome | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, or ⋮ → Bookmarks and lists → Show bookmarks bar |
+| Edge | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, or ⋯ → Settings → Appearance → Show favorites bar → Always |
+| Brave / Opera / Vivaldi | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> |
+
+On macOS, use <kbd>Cmd</kbd> instead of <kbd>Ctrl</kbd>.
+
+#### 3. Add the bookmarklet
+
+**Way 1: drag and drop (easiest)**
+
+1. Open `dist/bookmarklet.html` in your browser: double-click it, or drag the file into a
+   browser window.
+2. Drag the blue **Captcha autofill** button onto the bookmarks bar and let go.
+3. A bookmark called *Captcha autofill* appears on the bar.
+
+**Way 2: add it by hand** (if dragging doesn't work)
+
+1. Open `dist/bookmarklet.txt` in a text editor, select everything (<kbd>Ctrl</kbd>+<kbd>A</kbd>) and
+   copy it (<kbd>Ctrl</kbd>+<kbd>C</kbd>). It's one very long line starting with `javascript:`.
+2. Create a new bookmark:
+   - **Chrome:** <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (Bookmark manager) → ⋮ in the top right → **Add new bookmark**
+   - **Edge:** <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> (Favorites) → ⋯ → **Add favorite**
+     (or right-click the favorites bar → **Add favorite**)
+3. **Name:** `Captcha autofill`. **URL:** paste what you copied.
+4. Save. Check that the URL still starts with `javascript:`. Some browsers remove that prefix when
+   you paste; if yours did, type `javascript:` back in front.
+
+> Don't paste it into the address bar. Browsers drop `javascript:` there for safety, so it has to
+> be saved as a bookmark.
+
+#### 4. Use it
+
+1. Go to the login page on **`abc.in`** and wait until the captcha image is visible.
+2. Click **Captcha autofill** on the bookmarks bar.
+3. The captcha answer appears in the captcha box within about 1–2 seconds. The first click on
+   a page takes a little longer while it builds the rotated templates; after that it's about
+   50 ms per captcha.
+4. Check the answer, fill in the rest of the form, and log in yourself. The bookmarklet never
+   submits the form.
+
+**If the captcha changes** (you click "refresh captcha", or a failed login loads a new one), the
+bookmarklet keeps watching the page and fills in the new answer by itself. After a full page
+reload, click the bookmark again. Clicking it more than once on the same page is harmless; it just
+solves the current image again.
+
+**On any other website** it does nothing except show *"This bookmarklet only works on abc.in"*.
+It checks the exact hostname, so subdomains like `www.abc.in` don't count either.
+
+#### 5. Update it after retraining
+
+After `python src/export_extension.py` builds a new model, delete the old bookmark and add it again
+from the new `dist/bookmarklet.html`. A bookmark keeps a copy of the code, so it doesn't update
+by itself.
+
+#### Troubleshooting
+
+| what happens | why / what to do |
+|---|---|
+| "only works on abc.in" | You're on a different host. Open the login page on `abc.in` itself. |
+| nothing happens at all | The bookmark's URL doesn't start with `javascript:` (see step 3.4), or the page has no captcha image yet. Wait for it to load and click again. |
+| captcha box stays empty | Press <kbd>F12</kbd> → **Console** and look for `[captcha]` messages. *"found no input box"* means the page layout isn't what it expects: it looks for `input[name="captcha_response"]`, or else the first visible text box after the captcha image. |
+| a wrong answer is filled in | Rare (580/580 on the test data). Correct it by hand, or refresh the captcha; the new one gets filled in automatically. |
+| clicking it does nothing on a strict site | Some browsers block bookmarklets on pages with a strict Content-Security-Policy. Use the extension (Option B) instead. |
 
 ### Option B: extension (Chrome / Edge, fills in automatically)
 
