@@ -65,6 +65,7 @@ def build_model(cfg) -> dict:
         "min_strength": seg["min_strength"], "seg_min_area": seg["min_component_area"],
         "pre_min_area": p["min_component_area"], "crop_pad": seg["crop_pad"],
         "n_chars": cfg["captcha"]["n_chars"], "w_gap": seg.get("components", {}).get("w_gap", 2.0),
+        "speck_frac": seg.get("components", {}).get("speck_frac", 0.15),
     }
 
 

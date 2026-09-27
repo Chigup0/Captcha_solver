@@ -141,16 +141,43 @@
     const xOf = i => i % w;
     const color = g => [median(g.map(i => L[i])) * 0.5, median(g.map(i => A[i])), median(g.map(i => B[i]))];
 
-    // too many pieces (i/j dots, broken strokes): merge the most similar pair
+    const colorDist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+    const pixelGap = (a, b) => {  // distance between the closest pixels of two blobs
+      let best = Infinity;
+      for (const i of a) {
+        const xi = xOf(i), yi = (i - xi) / w;
+        for (const j of b) {
+          const xj = xOf(j), yj = (j - xj) / w, d = (xi - xj) ** 2 + (yi - yj) ** 2;
+          if (d < best) best = d;
+        }
+      }
+      return Math.sqrt(best);
+    };
+
+    // too many pieces: merge until there are N
     while (groups.length > N) {
       const cols = groups.map(color);
-      const ext = groups.map(g => { let lo = Infinity, hi = -Infinity; for (const i of g) { const x = xOf(i); if (x < lo) lo = x; if (x > hi) hi = x; } return [lo, hi]; });
-      let best = Infinity, bi = 0, bj = 1;
-      for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) {
-        const gap = Math.max(0, Math.max(ext[i][0], ext[j][0]) - Math.min(ext[i][1], ext[j][1]));
-        const dc = Math.hypot(cols[i][0] - cols[j][0], cols[i][1] - cols[j][1], cols[i][2] - cols[j][2]);
-        const cost = dc + P.w_gap * gap;
-        if (cost < best) { best = cost; bi = i; bj = j; }
+      const sizes = groups.map(g => g.length);
+      let s = 0;
+      sizes.forEach((v, k) => { if (v < sizes[s]) s = k; });
+      let bi, bj;
+      if (sizes[s] < P.speck_frac * median(sizes)) {
+        // a speck (i/j dot) is never a glyph: attach it to the similar-coloured blob with the closest pixel
+        let best = Infinity, t = -1;
+        groups.forEach((g, j) => {
+          if (j === s) return;
+          const cost = colorDist(cols[s], cols[j]) + P.w_gap * pixelGap(groups[s], g);
+          if (cost < best) { best = cost; t = j; }
+        });
+        bi = Math.min(s, t); bj = Math.max(s, t);
+      } else {  // broken strokes / leftovers: merge the most similar pair (colour + horizontal gap)
+        const ext = groups.map(g => { let lo = Infinity, hi = -Infinity; for (const i of g) { const x = xOf(i); if (x < lo) lo = x; if (x > hi) hi = x; } return [lo, hi]; });
+        let best = Infinity;
+        for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) {
+          const gap = Math.max(0, Math.max(ext[i][0], ext[j][0]) - Math.min(ext[i][1], ext[j][1]));
+          const cost = colorDist(cols[i], cols[j]) + P.w_gap * gap;
+          if (cost < best) { best = cost; bi = i; bj = j; }
+        }
       }
       groups[bi] = groups[bi].concat(groups[bj]);
       groups.splice(bj, 1);

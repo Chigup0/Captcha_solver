@@ -14,7 +14,7 @@ the captcha box. There's no neural network: each character is matched against le
 | test | result |
 |---|---|
 | live captchas checked by hand after training | **50 / 50** fully correct |
-| all 580 collected renderings (Python and browser code) | 579 / 580 fully correct |
+| all 580 collected renderings (Python and browser code) | **580 / 580** fully correct (held-out test ids: 80 / 80) |
 | speed | ~50 ms per captcha in the browser |
 
 > The extension and the bookmarklet only run on the one host set in `config/config.yaml`
@@ -30,8 +30,9 @@ how it's drawn. That makes a template matcher enough:
 
 ```
 captcha image
-  → segment      each glyph is one blob of one colour: connected components, merge blobs with
-                 similar colour (i/j dots), split the widest blob by colour if two glyphs touch
+  → segment      each glyph is one blob of one colour: connected components; attach specks (i/j
+                 dots) to the similar-coloured blob with the closest pixel, merge other extra
+                 pieces by colour, split the widest blob by colour if two glyphs touch
   → normalise    ink = colour distance from the background (so colour doesn't matter), Otsu mask,
                  tight bounding box, pad to a square, resize to 40×40
   → match        normalised cross-correlation against every template rotated -53°…+53° in 2° steps

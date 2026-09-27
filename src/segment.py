@@ -168,22 +168,37 @@ class ComponentSegmenter(Segmenter):
         if len(groups) == 0:
             fallback = EqualWidthSegmenter(self.cfg)
             return fallback.make_crops(img, bg, fallback.assign(mask), "equal_width(fallback)")
-        w_gap = self.seg.get("components", {}).get("w_gap", 2.0)
+        opts = self.seg.get("components", {})
+        w_gap, speck_frac = opts.get("w_gap", 2.0), opts.get("speck_frac", 0.15)
 
         def color(g):
             return np.median(lab[g[0], g[1]], axis=0) * np.array([0.5, 1, 1], np.float32)  # L* counts half
 
-        # too many pieces (i/j dots, broken strokes): merge the most similar pair
+        def pixel_gap(a, b):  # distance between the closest pixels of two blobs
+            pa, pb = np.column_stack(a).astype(np.float32), np.column_stack(b).astype(np.float32)
+            return float(np.sqrt(((pa[:, None] - pb[None]) ** 2).sum(-1).min()))
+
+        # too many pieces: merge until there are n
         while len(groups) > self.n:
-            best, pair = np.inf, None
-            for i in range(len(groups)):
-                for j in range(i + 1, len(groups)):
-                    (yi, xi), (yj, xj) = groups[i], groups[j]
-                    gap = max(0, max(xi.min(), xj.min()) - min(xi.max(), xj.max()))
-                    cost = np.linalg.norm(color(groups[i]) - color(groups[j])) + w_gap * gap
-                    if cost < best:
-                        best, pair = cost, (i, j)
-            i, j = pair
+            sizes = [len(g[1]) for g in groups]
+            s = int(np.argmin(sizes))
+            if sizes[s] < speck_frac * np.median(sizes):
+                # a speck (i/j dot) is never a glyph: attach it to the similar-coloured blob with the
+                # closest pixel - bounding boxes mislead when the i/j is rotated and its dot sits sideways
+                j = min((j for j in range(len(groups)) if j != s),
+                        key=lambda j: np.linalg.norm(color(groups[s]) - color(groups[j]))
+                        + w_gap * pixel_gap(groups[s], groups[j]))
+                i, j = min(s, j), max(s, j)
+            else:  # broken strokes / leftovers: merge the most similar pair (colour + horizontal gap)
+                best, pair = np.inf, None
+                for i in range(len(groups)):
+                    for j in range(i + 1, len(groups)):
+                        (yi, xi), (yj, xj) = groups[i], groups[j]
+                        gap = max(0, max(xi.min(), xj.min()) - min(xi.max(), xj.max()))
+                        cost = np.linalg.norm(color(groups[i]) - color(groups[j])) + w_gap * gap
+                        if cost < best:
+                            best, pair = cost, (i, j)
+                i, j = pair
             groups[i] = (np.concatenate([groups[i][0], groups[j][0]]), np.concatenate([groups[i][1], groups[j][1]]))
             del groups[j]
 

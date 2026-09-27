@@ -64,7 +64,8 @@ split:
 segmentation:
   method: components          # components | color_kmeans | equal_width
   components:
-    w_gap: 2.0                # merge cost per pixel of horizontal gap between two blobs
+    w_gap: 2.0                # merge cost per pixel of gap between two blobs
+    speck_frac: 0.15          # blobs smaller than this x median blob size are specks (i/j dots)
   min_strength: 0.12          # min ink strength (distance from background colour, 0..1)
   min_component_area: 8
   crop_pad: 2
