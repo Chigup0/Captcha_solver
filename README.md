@@ -136,6 +136,44 @@ solves the current image again.
 **On any other website** it does nothing except show *"This bookmarklet only works on abc.in"*.
 It checks the exact hostname, so subdomains like `www.abc.in` don't count either.
 
+#### Android (Chrome)
+
+Mobile Chrome has no bookmarks bar and you can't drag onto it, so you add the bookmark differently
+and run it from the address bar. The recognizer runs the same way on a phone.
+
+**Add it: sync from desktop (recommended)**
+
+1. On a computer, sign in to Chrome with the same Google account as on the phone, and turn on
+   sync for bookmarks: ⋮ → Settings → *You and Google* → Sync → make sure **Bookmarks** is on.
+2. Add the bookmarklet on the computer (step 3 above) and name it something short with no
+   spaces, like `capfill`.
+3. On the phone: Chrome → ⋮ → Settings → your account → Sync → **Bookmarks** on. After a minute
+   `capfill` shows up under ⋮ → Bookmarks (usually in *Mobile bookmarks* or *Bookmarks bar*).
+
+**Add it: directly on the phone** (if you can't sync)
+
+1. Get `dist/bookmarklet.txt` onto the phone, for example by emailing it to yourself, and copy
+   its entire contents. It's about 220 KB, so select-all and copy can take a moment.
+2. Bookmark any page: ⋮ → ☆.
+3. ⋮ → Bookmarks → long-press that bookmark → **Edit**.
+4. Name: `capfill`. URL: delete everything, paste, and make sure it starts with `javascript:`.
+   Save.
+
+Pasting such a long line on a phone sometimes gets cut off. If the bookmarklet does nothing
+later, use the sync method.
+
+**Run it**
+
+1. Open the `abc.in` login page and wait for the captcha image.
+2. Tap the address bar and type `capfill`. Don't press Enter.
+3. In the suggestions, tap the entry with a **★** that shows `javascript:…`. Pressing Enter or
+   tapping a search suggestion would search Google for "capfill" instead.
+4. The captcha box fills in after 1–3 seconds (phones are slower on the first run).
+
+**Debugging on the phone:** plug it into a computer by USB, turn on *USB debugging* in the phone's
+Developer options, then open `chrome://inspect` in desktop Chrome, click **inspect** under the
+phone's tab, and look for `[captcha]` lines in the Console.
+
 #### 5. Update it after retraining
 
 After `python src/export_extension.py` builds a new model, delete the old bookmark and add it again
